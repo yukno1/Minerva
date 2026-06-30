@@ -1,4 +1,9 @@
+use std::path::PrefixComponent;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+
+use crate::agent_client::AgentClient;
+use protocol::DEFAULT_ADDR;
 
 /// Application.
 pub struct App {
@@ -12,6 +17,8 @@ pub struct App {
     pub messages: Vec<String>,
     /// should the application exit?
     pub should_quit: bool,
+    /// client
+    pub client: AgentClient,
 }
 
 pub enum InputMode {
@@ -28,6 +35,7 @@ impl App {
             messages: Vec::new(),
             character_index: 0,
             should_quit: false,
+            client: AgentClient::connect(DEFAULT_ADDR).unwrap(),
         }
     }
 
@@ -98,9 +106,11 @@ impl App {
     }
 
     fn submit_message(&mut self) {
-        self.messages.push(self.input.clone());
+        let prompt = self.input.clone();
+        self.messages.push(prompt.clone());
         self.input.clear();
         self.reset_cursor();
+        self.messages.push(self.client.send_prompt(prompt).unwrap());
     }
 
     pub fn run(&mut self, key: KeyEvent) {

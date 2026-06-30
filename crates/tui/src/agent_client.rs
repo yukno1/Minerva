@@ -14,7 +14,7 @@ impl AgentClient {
         Ok(Self { stream })
     }
 
-    pub fn send_prompt(&mut self, prompt: &str) -> std::io::Result<String> {
+    pub fn send_prompt(&mut self, prompt: String) -> std::io::Result<String> {
         let request = serde_json::json!({ "prompt": prompt });
         let request_str = serde_json::to_string(&request)?;
 
