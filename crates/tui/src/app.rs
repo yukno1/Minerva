@@ -2,7 +2,7 @@ use std::path::PrefixComponent;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
-use crate::agent_client::AgentClient;
+use crate::client::AgentClient;
 use protocol::DEFAULT_ADDR;
 
 /// Application.
@@ -61,6 +61,7 @@ impl App {
         let index = self.byte_index();
         self.input.insert(index, new_char);
         self.move_cursor_right();
+        todo!("光标中文bug")
     }
 
     /// Returns the byte index based on the character position.

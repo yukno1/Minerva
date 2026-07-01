@@ -3,14 +3,23 @@
 version = 4
 
 [[package]]
+name = "Minerva"
+version = "0.1.0"
+dependencies = [
+ "Minerva-agent",
+ "protocol",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "Minerva-agent"
 version = "0.1.0"
 dependencies = [
  "futures",
  "protocol",
  "rig",
- "serde",
- "serde_json",
  "tokio",
 ]
 

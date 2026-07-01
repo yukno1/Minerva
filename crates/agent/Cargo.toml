@@ -6,7 +6,5 @@ edition = "2024"
 [dependencies]
 rig = "0.39.0"
 tokio.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 protocol = { path = "../protocol" }
 futures = "0.3.32"

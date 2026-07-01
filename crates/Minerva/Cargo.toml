@@ -1,0 +1,11 @@
+[package]
+name = "Minerva"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+protocol = { path = "../protocol" }
+Minerva-agent = { path = "../agent" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

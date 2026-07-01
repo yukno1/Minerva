@@ -1,8 +1,6 @@
 [workspace]
-members = [
-    "crates/agent", "crates/protocol", "crates/tui",
-]
-default-members = ["crates/tui"]
+members = ["crates/Minerva", "crates/agent", "crates/protocol", "crates/tui"]
+default-members = ["crates/Minerva"]
 resolver = "3"
 
 [workspace.dependencies]

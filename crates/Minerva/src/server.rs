@@ -1,21 +1,25 @@
 use serde_json;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
+use std::sync::Arc;
 use std::thread;
 
 use protocol::{ChatRequest, ChatResponse, DEFAULT_ADDR};
 
-use crate::agent;
+use Minerva_agent::AgentProcess;
 
-#[derive(Debug)]
 pub struct AgentServer {
     listener: TcpListener,
+    agent_process: Arc<AgentProcess>,
 }
 
 impl AgentServer {
     pub fn listen(addr: &str) -> Result<Self, std::io::Error> {
         let listener = TcpListener::bind(DEFAULT_ADDR)?;
-        Ok(Self { listener })
+        Ok(Self {
+            listener,
+            agent_process: Arc::new(AgentProcess::new()),
+        })
     }
 
     pub fn serve(&self) -> std::io::Result<()> {
@@ -25,8 +29,9 @@ impl AgentServer {
             match stream {
                 Ok(stream) => {
                     println!("New connection from {:?}", stream.peer_addr());
-                    thread::spawn(|| {
-                        if let Err(e) = handle_conn(stream) {
+                    let agent_process = self.agent_process.clone();
+                    thread::spawn(move || {
+                        if let Err(e) = handle_conn(stream, agent_process) {
                             eprintln!("Connection error: {}", e);
                         }
                     });
@@ -54,7 +59,7 @@ impl AgentServer {
     // }
 }
 
-fn handle_conn(mut stream: TcpStream) -> std::io::Result<()> {
+fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::io::Result<()> {
     // 克隆 stream 用于读取（BufReader 需要所有权）
     let reader_stream = stream.try_clone()?;
     let mut reader = BufReader::new(reader_stream);
@@ -79,7 +84,7 @@ fn handle_conn(mut stream: TcpStream) -> std::io::Result<()> {
         println!("Received prompt: {}", request.prompt);
 
         // 使用 agent 处理 prompt
-        let response_text = process_prompt(request.prompt)?;
+        let response_text = process_prompt(agent_process.clone(), request.prompt)?;
 
         // 创建并发送响应
         let response = ChatResponse {
@@ -101,7 +106,7 @@ fn handle_conn(mut stream: TcpStream) -> std::io::Result<()> {
     Ok(())
 }
 
-fn process_prompt(prompt: String) -> std::io::Result<String> {
+fn process_prompt(agent_process: Arc<AgentProcess>, prompt: String) -> std::io::Result<String> {
     // 为这个连接创建单线程 tokio 运行时
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -114,5 +119,5 @@ fn process_prompt(prompt: String) -> std::io::Result<String> {
         })?;
 
     // 阻塞执行异步 agent 操作
-    rt.block_on(agent::process(prompt))
+    rt.block_on(agent_process.respond(prompt))
 }

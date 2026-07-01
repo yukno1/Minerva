@@ -13,7 +13,7 @@ pub mod tui;
 /// Application updater.
 pub mod update;
 
-mod agent_client;
+mod client;
 
 use app::App;
 use color_eyre::Result;
