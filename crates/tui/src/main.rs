@@ -15,6 +15,8 @@ pub mod update;
 
 mod client;
 
+use std::io;
+
 use app::App;
 use color_eyre::Result;
 use event::{Event, EventHandler};
@@ -22,7 +24,42 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use tui::Tui;
 use update::update;
 
-fn main() -> Result<()> {
+use std::io::Write;
+use std::sync::mpsc;
+use std::thread;
+
+fn main() {
+    let (tx, rx) = mpsc::channel::<String>();
+    let tx_clone = tx.clone();
+
+    let mut app = App::new();
+
+    thread::spawn(move || {
+        loop {
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+            if input == "quit".to_string() {
+                break;
+            }
+
+            println!("> {input}");
+            app.client.send_prompt(input);
+
+            app.client
+                .receive_stream(|content| {
+                    tx_clone.send(content).unwrap();
+                })
+                .unwrap();
+        }
+    });
+
+    for content in rx {
+        print!("{}", content);
+        io::stdout().flush().unwrap();
+    }
+}
+
+fn rust_main() -> Result<()> {
     // Create an application.
     let mut app = App::new();
     // color_eyre::install()?;

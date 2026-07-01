@@ -35,7 +35,7 @@ impl App {
             messages: Vec::new(),
             character_index: 0,
             should_quit: false,
-            client: AgentClient::connect(DEFAULT_ADDR).unwrap(),
+            client: AgentClient::connect(DEFAULT_ADDR).expect("can't connect to server"),
         }
     }
 
@@ -111,7 +111,8 @@ impl App {
         self.messages.push(prompt.clone());
         self.input.clear();
         self.reset_cursor();
-        self.messages.push(self.client.send_prompt(prompt).unwrap());
+        self.client.send_prompt(prompt).unwrap();
+        self.messages.push(self.client.receive_response().unwrap());
     }
 
     pub fn run(&mut self, key: KeyEvent) {

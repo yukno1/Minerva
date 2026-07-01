@@ -4,7 +4,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
 
-use protocol::{ChatRequest, ChatResponse, DEFAULT_ADDR};
+use protocol::{ChatRequest, ChatResponse, ChatResponseChunk, DEFAULT_ADDR};
 
 use Minerva_agent::AgentProcess;
 
@@ -83,24 +83,24 @@ fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::
 
         println!("Received prompt: {}", request.prompt);
 
-        // 使用 agent 处理 prompt
-        let response_text = process_prompt(agent_process.clone(), request.prompt)?;
+        // let response_text = process_prompt(agent_process.clone(), request.prompt)?;
 
-        // 创建并发送响应
-        let response = ChatResponse {
-            response: response_text,
-        };
+        // let response = ChatResponse {
+        //     response: response_text,
+        // };
 
-        let response_str = serde_json::to_string(&response).map_err(|e| {
-            eprintln!("Failed to serialize response: {}", e);
-            std::io::Error::new(std::io::ErrorKind::Other, e)
-        })?;
+        // let response_str = serde_json::to_string(&response).map_err(|e| {
+        //     eprintln!("Failed to serialize response: {}", e);
+        //     std::io::Error::new(std::io::ErrorKind::Other, e)
+        // })?;
 
-        println!("Sending response ({} chars)", response_str.len());
+        // println!("Sending response ({} chars)", response_str.len());
 
-        stream.write_all(response_str.as_bytes())?;
-        stream.write_all(b"\n")?;
-        stream.flush()?;
+        // stream.write_all(response_str.as_bytes())?;
+        // stream.write_all(b"\n")?;
+        // stream.flush()?;
+
+        stream_process_prompt(agent_process.clone(), request.prompt, &mut stream);
     }
 
     Ok(())
@@ -120,4 +120,65 @@ fn process_prompt(agent_process: Arc<AgentProcess>, prompt: String) -> std::io::
 
     // 阻塞执行异步 agent 操作
     rt.block_on(agent_process.respond(prompt))
+}
+
+fn stream_process_prompt(
+    agent_process: Arc<AgentProcess>,
+    prompt: String,
+    stream: &mut TcpStream,
+) -> std::io::Result<()> {
+    // 为这个连接创建单线程 tokio 运行时
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to create runtime: {}", e),
+            )
+        })?;
+
+    // 阻塞执行异步 agent 操作
+    rt.block_on(async {
+        let mut text_stream = agent_process.stream_respond(prompt).await;
+
+        use futures::StreamExt;
+
+        while let Some(result) = text_stream.next().await {
+            match result {
+                Ok(text) => {
+                    // 发送每个文本片段到客户端
+                    println!("Sending response: {text}", text = text.clone());
+                    let response = ChatResponseChunk {
+                        content: text,
+                        done: false,
+                    };
+
+                    let response_str = serde_json::to_string(&response)
+                        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+                    stream.write_all(response_str.as_bytes())?;
+                    stream.write_all(b"\n")?;
+                    stream.flush()?;
+                }
+                Err(e) => {
+                    eprintln!("Stream error: {}", e);
+                    break;
+                }
+            }
+        }
+        let response = ChatResponseChunk {
+            content: "\n".to_string(),
+            done: true,
+        };
+
+        let response_str = serde_json::to_string(&response)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+        stream.write_all(response_str.as_bytes())?;
+        stream.write_all(b"\n")?;
+        stream.flush()?;
+
+        Ok(())
+    })
 }

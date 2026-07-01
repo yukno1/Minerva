@@ -1,10 +1,13 @@
-mod agent;
+use std::pin::Pin;
 
-use futures::StreamExt;
+use async_stream::try_stream;
+use futures::{Stream, StreamExt};
 use rig::{
+    agent::MultiTurnStreamItem,
     completion::Prompt,
     prelude::*,
     providers::ollama::{Client, CompletionModel},
+    streaming::{StreamedAssistantContent, StreamingPrompt},
 };
 
 pub struct AgentProcess {
@@ -39,18 +42,27 @@ impl AgentProcess {
         });
         // format!("Response: {response}")
 
-        // let mut stream = agent.stream_prompt(prompt).await;
-
-        // while let Some(item) = stream.next().await {
-        //     match item? {
-        //         MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(text)) => {
-        //             format!("{}", text.text);
-        //         }
-        //         MultiTurnStreamItem::FinalResponse(_) => format!(),
-        //         _ => {}
-        //     }
-        // }
-
         response
+    }
+
+    pub async fn stream_respond(
+        &self,
+        prompt: String,
+    ) -> Pin<Box<dyn Stream<Item = Result<String, std::io::Error>> + Send>> {
+        let stream = self.agent.stream_prompt(prompt).await;
+
+        Box::pin(stream.filter_map(|item| async move {
+            match item {
+                Ok(MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(
+                    text,
+                ))) => Some(Ok(text.text)),
+                Ok(MultiTurnStreamItem::FinalResponse(_)) => Some(Ok("".to_string())),
+                Ok(_) => None,
+                Err(e) => Some(Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Stream error: {}", e),
+                ))),
+            }
+        }))
     }
 }

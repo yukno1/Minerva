@@ -11,3 +11,9 @@ pub struct ChatRequest {
 pub struct ChatResponse {
     pub response: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChatResponseChunk {
+    pub content: String,
+    pub done: bool,
+}
