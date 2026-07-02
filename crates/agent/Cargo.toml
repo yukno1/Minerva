@@ -1,10 +1,10 @@
 [package]
-name = "Minerva-agent"
+name = "Minerva-Agent"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rig = "0.39.0"
+rig = { version = "0.39.0", features = ["lancedb"] }
 tokio.workspace = true
 protocol = { path = "../protocol" }
 futures.workspace = true

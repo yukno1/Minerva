@@ -42,18 +42,15 @@ impl AgentClient {
             let bytes_read = reader.read_line(&mut line)?;
 
             if bytes_read == 0 {
-                // 连接关闭
                 break;
             }
 
-            // 解析 JSON 响应块
             if let Ok(chunk) = serde_json::from_str::<protocol::ChatResponseChunk>(&line.trim()) {
                 // 调用回调函数处理内容
                 if !chunk.content.is_empty() {
                     callback(chunk.content);
                 }
 
-                // 如果 done 为 true，结束接收
                 if chunk.done {
                     break;
                 }

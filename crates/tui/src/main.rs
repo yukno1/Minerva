@@ -28,38 +28,55 @@ use std::io::Write;
 use std::sync::mpsc;
 use std::thread;
 
+#[derive(Debug, Clone)]
+enum Message {
+    Chunk(String),
+    Done,
+}
+
 fn main() {
-    let (tx, rx) = mpsc::channel::<String>();
+    let (tx, rx) = mpsc::channel::<Message>();
     let tx_clone = tx.clone();
 
     let mut app = App::new();
 
-    thread::spawn(move || {
+    let handle = thread::spawn(move || {
         loop {
+            print!("> ");
+            io::stdout().flush().unwrap();
             let mut input = String::new();
             io::stdin().read_line(&mut input).unwrap();
-            if input == "quit".to_string() {
+
+            if input.trim() == "quit".to_string() {
+                let _ = tx_clone.send(Message::Done);
                 break;
             }
 
-            println!("> {input}");
-            app.client.send_prompt(input);
+            let _ = app.client.send_prompt(input);
 
             app.client
                 .receive_stream(|content| {
-                    tx_clone.send(content).unwrap();
+                    tx_clone.send(Message::Chunk(content)).unwrap();
                 })
                 .unwrap();
         }
     });
 
-    for content in rx {
-        print!("{}", content);
-        io::stdout().flush().unwrap();
+    for message in rx {
+        match message {
+            Message::Chunk(content) => {
+                print!("{}", content);
+                io::stdout().flush().unwrap();
+            }
+            Message::Done => {
+                let _ = handle.join();
+                break;
+            }
+        }
     }
 }
 
-fn rust_main() -> Result<()> {
+fn _rust_main() -> Result<()> {
     // Create an application.
     let mut app = App::new();
     // color_eyre::install()?;

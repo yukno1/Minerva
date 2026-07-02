@@ -10,6 +10,9 @@ use rig::{
     streaming::{StreamedAssistantContent, StreamingPrompt},
 };
 
+mod agent;
+mod rag;
+
 pub struct AgentProcess {
     agent: rig::agent::Agent<CompletionModel>,
 }

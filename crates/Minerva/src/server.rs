@@ -6,7 +6,7 @@ use std::thread;
 
 use protocol::{ChatRequest, ChatResponse, ChatResponseChunk, DEFAULT_ADDR};
 
-use Minerva_agent::AgentProcess;
+use Minerva_Agent::AgentProcess;
 
 pub struct AgentServer {
     listener: TcpListener,
@@ -14,7 +14,7 @@ pub struct AgentServer {
 }
 
 impl AgentServer {
-    pub fn listen(addr: &str) -> Result<Self, std::io::Error> {
+    pub fn listen(_addr: &str) -> Result<Self, std::io::Error> {
         let listener = TcpListener::bind(DEFAULT_ADDR)?;
         Ok(Self {
             listener,
@@ -62,6 +62,7 @@ impl AgentServer {
 fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::io::Result<()> {
     // 克隆 stream 用于读取（BufReader 需要所有权）
     let reader_stream = stream.try_clone()?;
+    // BufReader::read_line() 的行为是：阻塞等待，直到遇到换行符 \n 或 EOF（连接关闭）。
     let mut reader = BufReader::new(reader_stream);
 
     loop {
@@ -100,13 +101,13 @@ fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::
         // stream.write_all(b"\n")?;
         // stream.flush()?;
 
-        stream_process_prompt(agent_process.clone(), request.prompt, &mut stream);
+        let _ = stream_process_prompt(agent_process.clone(), request.prompt, &mut stream);
     }
 
     Ok(())
 }
 
-fn process_prompt(agent_process: Arc<AgentProcess>, prompt: String) -> std::io::Result<String> {
+fn _process_prompt(agent_process: Arc<AgentProcess>, prompt: String) -> std::io::Result<String> {
     // 为这个连接创建单线程 tokio 运行时
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
