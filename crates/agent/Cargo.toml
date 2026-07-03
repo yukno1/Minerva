@@ -6,6 +6,6 @@ edition = "2024"
 [dependencies]
 rig = { version = "0.39.0", features = ["lancedb"] }
 tokio.workspace = true
-protocol = { path = "../protocol" }
+protocol.workspace = true
 futures.workspace = true
 async-stream = "0.3.6"
