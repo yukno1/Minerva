@@ -11,7 +11,7 @@ use rig::{
 };
 
 mod agent;
-mod rag;
+// mod rag;
 
 pub struct AgentProcess {
     agent: rig::agent::Agent<CompletionModel>,

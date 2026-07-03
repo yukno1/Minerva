@@ -82,7 +82,7 @@ fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::
             std::io::Error::new(std::io::ErrorKind::Other, e)
         })?;
 
-        println!("Received prompt: {}", request.prompt);
+        println!("Received prompt: {}", request.prompt.trim());
 
         // let response_text = process_prompt(agent_process.clone(), request.prompt)?;
 

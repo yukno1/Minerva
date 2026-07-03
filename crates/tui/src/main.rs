@@ -14,6 +14,7 @@ pub mod tui;
 pub mod update;
 
 mod client;
+mod session;
 
 use std::io;
 
@@ -25,72 +26,56 @@ use tui::Tui;
 use update::update;
 
 use std::io::Write;
-use std::sync::mpsc;
-use std::thread;
 
-#[derive(Debug, Clone)]
-enum Message {
-    Chunk(String),
-    Done,
-}
+use crate::client::Client;
+use crate::session::Session;
+use protocol::DEFAULT_ADDR;
 
-fn main() {
-    let (tx, rx) = mpsc::channel::<Message>();
-    let tx_clone = tx.clone();
-
+fn main() -> Result<()> {
     let mut app = App::new();
+    // let mut client = Client::connect(DEFAULT_ADDR).expect("can't connect to server");
+    // let mut session = Session::new();
 
-    let handle = thread::spawn(move || {
-        loop {
-            print!("> ");
-            io::stdout().flush().unwrap();
-            let mut input = String::new();
-            io::stdin().read_line(&mut input).unwrap();
+    // loop {
+    //     print!("> ");
+    //     io::stdout().flush().unwrap();
+    //     let mut input = String::new();
+    //     io::stdin().read_line(&mut input).unwrap();
 
-            if input.trim() == "quit".to_string() {
-                let _ = tx_clone.send(Message::Done);
-                break;
-            }
+    //     if input.trim() == "quit" {
+    //         break;
+    //     }
+    //     session.add_userinput(input.clone());
 
-            let _ = app.client.send_prompt(input);
+    //     let _ = client.send_prompt(input);
 
-            app.client
-                .receive_stream(|content| {
-                    tx_clone.send(Message::Chunk(content)).unwrap();
-                })
-                .unwrap();
-        }
-    });
+    //     print!("> ");
+    //     io::stdout().flush().unwrap();
+    //     session.assign_agentoutput_block();
+    //     client
+    //         .receive_stream(|content| {
+    //             session.push_agentoutput_chunk(content.clone());
+    //             print!("{}", content);
+    //             io::stdout().flush().unwrap();
+    //         })
+    //         .unwrap();
+    // }
 
-    for message in rx {
-        match message {
-            Message::Chunk(content) => {
-                print!("{}", content);
-                io::stdout().flush().unwrap();
-            }
-            Message::Done => {
-                let _ = handle.join();
-                break;
-            }
-        }
-    }
-}
-
-fn _rust_main() -> Result<()> {
-    // Create an application.
-    let mut app = App::new();
     // color_eyre::install()?;
     // ratatui::run(|terminal| App::new().run(terminal))
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
+    let events = EventHandler::new(100);
     let mut tui = Tui::new(terminal, events);
     tui.enter()?;
 
     // Start the main loop.
     while !app.should_quit {
+        // Pull any streamed chunks that arrived since the last iteration and fold
+        // them into the in-flight agent message before rendering.
+        app.poll_stream();
         // Render the user interface.
         tui.draw(&mut app)?;
         // Handle events.

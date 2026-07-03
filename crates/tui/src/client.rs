@@ -4,13 +4,13 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 
 #[derive(Debug)]
-pub struct AgentClient {
+pub struct Client {
     stream: TcpStream,
 }
 
-impl AgentClient {
-    pub fn connect(addr: &str) -> std::io::Result<Self> {
-        let stream = TcpStream::connect(addr)?;
+impl Client {
+    pub fn connect(remote_addr: &str) -> std::io::Result<Self> {
+        let stream = TcpStream::connect(remote_addr)?;
         Ok(Self { stream })
     }
 
@@ -23,7 +23,7 @@ impl AgentClient {
         Ok(())
     }
 
-    pub fn receive_response(&mut self) -> std::io::Result<String> {
+    pub fn _receive_response(&mut self) -> std::io::Result<String> {
         let mut reader = BufReader::new(&self.stream);
         let mut response_str = String::new();
         reader.read_line(&mut response_str)?;
