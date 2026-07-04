@@ -6,7 +6,7 @@ use std::thread;
 
 use protocol::{ChatRequest, ChatResponse, ChatResponseChunk, DEFAULT_ADDR};
 
-use Minerva_Agent::AgentProcess;
+use crate::process::AgentProcess;
 
 pub struct AgentServer {
     listener: TcpListener,
@@ -43,20 +43,22 @@ impl AgentServer {
         Ok(())
     }
 
-    // fn send_response(&mut self, prompt: &str) -> std::io::Result<String> {
-    //     let request = serde_json::json!({ "prompt": prompt });
-    //     let request_str = serde_json::to_string(&request)?;
-
-    //     self.stream.write_all(request_str.as_bytes())?;
-    //     self.stream.write_all(b"\n")?;
-
-    //     let mut reader = BufReader::new(&self.stream);
-    //     let mut response_str = String::new();
-    //     reader.read_line(&mut response_str)?;
-
-    //     let response: serde_json::Value = serde_json::from_str(&response_str)?;
-    //     Ok(response["response"].as_str().unwrap_or("").to_string())
-    // }
+    /*
+     *   fn send_response(&mut self, prompt: &str) -> std::io::Result<String> {
+     *       let request = serde_json::json!({ "prompt": prompt });
+     *       let request_str = serde_json::to_string(&request)?;
+     *
+     *       self.stream.write_all(request_str.as_bytes())?;
+     *       self.stream.write_all(b"\n")?;
+     *
+     *       let mut reader = BufReader::new(&self.stream);
+     *       let mut response_str = String::new();
+     *       reader.read_line(&mut response_str)?;
+     *
+     *       let response: serde_json::Value = serde_json::from_str(&response_str)?;
+     *       Ok(response["response"].as_str().unwrap_or("").to_string())
+     *   }
+     */
 }
 
 fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::io::Result<()> {
@@ -107,22 +109,6 @@ fn handle_conn(mut stream: TcpStream, agent_process: Arc<AgentProcess>) -> std::
     Ok(())
 }
 
-fn _process_prompt(agent_process: Arc<AgentProcess>, prompt: String) -> std::io::Result<String> {
-    // 为这个连接创建单线程 tokio 运行时
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to create runtime: {}", e),
-            )
-        })?;
-
-    // 阻塞执行异步 agent 操作
-    rt.block_on(agent_process.respond(prompt))
-}
-
 fn stream_process_prompt(
     agent_process: Arc<AgentProcess>,
     prompt: String,
@@ -141,7 +127,7 @@ fn stream_process_prompt(
 
     // 阻塞执行异步 agent 操作
     rt.block_on(async {
-        let mut text_stream = agent_process.stream_respond(prompt).await;
+        let mut text_stream = agent_process.agent.stream_respond(prompt).await;
 
         use futures::StreamExt;
 
@@ -182,4 +168,20 @@ fn stream_process_prompt(
 
         Ok(())
     })
+}
+
+fn _process_prompt(agent_process: Arc<AgentProcess>, prompt: String) -> std::io::Result<String> {
+    // 为这个连接创建单线程 tokio 运行时
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to create runtime: {}", e),
+            )
+        })?;
+
+    // 阻塞执行异步 agent 操作
+    rt.block_on(agent_process.agent.respond(prompt))
 }

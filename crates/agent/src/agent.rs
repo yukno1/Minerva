@@ -1,7 +1,7 @@
 use async_stream::try_stream;
 use futures::{Stream, StreamExt};
-use rig::{
-    agent::MultiTurnStreamItem,
+use rig_core::{
+    agent::{self, MultiTurnStreamItem},
     completion::Prompt,
     prelude::*,
     providers::ollama::{Client, CompletionModel},
@@ -10,7 +10,7 @@ use rig::{
 use std::pin::Pin;
 
 pub struct Agent {
-    kernel: rig::agent::Agent<CompletionModel>,
+    pub kernel: agent::Agent<CompletionModel>,
 }
 
 impl Agent {

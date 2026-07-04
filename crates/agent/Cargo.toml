@@ -1,11 +1,11 @@
 [package]
-name = "Minerva-Agent"
+name = "Minerva_Agent"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rig = { version = "0.39.0", features = ["lancedb"] }
 tokio.workspace = true
 protocol.workspace = true
 futures.workspace = true
 async-stream = "0.3.6"
+rig-core = "0.39.0"

@@ -8,7 +8,7 @@ resolver = "3"
 # Internal
 #
 protocol = { path = "crates/protocol" }
-Minerva-Agent = { path = "crates/agent" }
+Minerva_Agent = { path = "crates/agent" }
 
 #
 # External

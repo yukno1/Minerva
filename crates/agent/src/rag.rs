@@ -1,4 +1,4 @@
-// use rig::rig_lancedb::{LanceDbVectorIndex, SearchParams};
+// use rig_lancedb::{LanceDbVectorIndex, SearchParams};
 use rig::{
     agent::Text,
     client::{CompletionClient, EmbeddingsClient, ProviderClient},
